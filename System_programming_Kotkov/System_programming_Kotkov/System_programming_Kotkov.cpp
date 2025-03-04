@@ -53,6 +53,7 @@ int main()
 		{
 			if (i == 0) {
 				SetEvent(hExitEvent);
+				SetEvent(hConfirmEvent);
 				break;
 			}
 			sessions.back()->addMessage(MT_CLOSE);
@@ -64,6 +65,7 @@ int main()
 		case 2:
 		{
 			sessions.clear();
+			i = -1;
 			SetEvent(hConfirmEvent);
 			break;
 		}
