@@ -33,6 +33,7 @@
             Send_button = new Button();
             numericUpDown = new NumericUpDown();
             listBoxEvents = new ListBox();
+            messageBox = new TextBox();
             ((System.ComponentModel.ISupportInitialize)numericUpDown).BeginInit();
             SuspendLayout();
             // 
@@ -64,6 +65,7 @@
             Send_button.TabIndex = 2;
             Send_button.Text = "Send";
             Send_button.UseVisualStyleBackColor = true;
+            Send_button.Click += Send_button_Click;
             // 
             // numericUpDown
             // 
@@ -80,11 +82,19 @@
             listBoxEvents.Size = new Size(292, 264);
             listBoxEvents.TabIndex = 4;
             // 
+            // messageBox
+            // 
+            messageBox.Location = new Point(224, 190);
+            messageBox.Name = "messageBox";
+            messageBox.Size = new Size(201, 27);
+            messageBox.TabIndex = 5;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(messageBox);
             Controls.Add(listBoxEvents);
             Controls.Add(numericUpDown);
             Controls.Add(Send_button);
@@ -95,6 +105,7 @@
             FormClosed += Form1_FormClosed;
             ((System.ComponentModel.ISupportInitialize)numericUpDown).EndInit();
             ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
@@ -104,5 +115,6 @@
         private Button Send_button;
         private NumericUpDown numericUpDown;
         private ListBox listBoxEvents;
+        private TextBox messageBox;
     }
 }

@@ -3,7 +3,8 @@
 
 enum MessageTypes
 {
-	MT_CLOSE
+	MT_CLOSE,
+	MT_DATA
 };
 
 struct MessageHeader
@@ -15,9 +16,9 @@ struct MessageHeader
 struct Message
 {
 	MessageHeader header = { 0 };
-	std::string data;
+	std::wstring data;
 	Message() = default;
-	Message(MessageTypes messageType, const std::string& data = "")
+	Message(MessageTypes messageType, const std::wstring& data = L"")
 		:data(data)
 	{
 		header = { messageType,  int(data.length()) };
@@ -73,7 +74,7 @@ public:
 		return res;
 	}
 
-	void addMessage(MessageTypes messageType, const std::string& data = "")
+	void addMessage(MessageTypes messageType, const std::wstring& data = L"")
 	{
 		Message m(messageType, data);
 		addMessage(m);

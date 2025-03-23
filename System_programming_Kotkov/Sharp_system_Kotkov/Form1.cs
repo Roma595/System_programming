@@ -1,19 +1,26 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows.Forms.Design;
 
 namespace Sharp_system_Kotkov
 {
+
+
     public partial class Form1 : Form
     {
         Process? ChildProcess = null;
         EventWaitHandle StartEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "StartEvent");
         EventWaitHandle StopEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "StopEvent");
         EventWaitHandle ConfirmEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "ConfirmEvent");
+        EventWaitHandle SendEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "SendEvent");
         EventWaitHandle ExitEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "ExitEvent");
         public Form1()
         {
             InitializeComponent();
         }
+
+        [DllImport("Kotkov_DLL.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        private static extern void mapsend(int addr, string str);
 
         private void OnProcessExited(object sender, EventArgs e)
         {
@@ -25,7 +32,7 @@ namespace Sharp_system_Kotkov
             {
                 listBoxEvents.Items.Clear();
             }
-            
+
         }
 
         private void Start_button_Click(object sender, EventArgs e)
@@ -67,6 +74,16 @@ namespace Sharp_system_Kotkov
             if (!(ChildProcess == null || ChildProcess.HasExited))
             {
                 ExitEvent.Set();
+                ConfirmEvent.WaitOne();
+            }
+        }
+
+        private void Send_button_Click(object sender, EventArgs e)
+        {
+            if (!(ChildProcess == null || ChildProcess.HasExited))
+            {
+                mapsend(listBoxEvents.SelectedIndex, messageBox.Text);
+                SendEvent.Set();
                 ConfirmEvent.WaitOne();
             }
         }
