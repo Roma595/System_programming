@@ -24,7 +24,6 @@ void WriteFile(int sessionID, const std::wstring& message) {
 	if (out.is_open()) {
 		out << message << std::endl;
 	}
-
 	out.close();
 }
 
@@ -46,9 +45,7 @@ void MyThread(Session* session)
 			}
 			case MT_DATA: 
 			{
-				// file
 				WriteFile(session->sessionID, m.data);
-				//SafeWrite("session", session->sessionID, m.data);
 			}
 			}
 		}
