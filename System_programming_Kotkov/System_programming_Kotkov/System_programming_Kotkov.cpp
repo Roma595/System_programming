@@ -1,4 +1,9 @@
-﻿#include <iostream>
+﻿#ifndef _WIN32_WINNT
+#define	_WIN32_WINNT	0x0A00
+#endif	
+
+#include <boost/asio.hpp>
+#include <iostream>
 #include <conio.h>
 #include <Windows.h>
 #include <thread>
@@ -6,15 +11,31 @@
 
 #include "Session.h"
 
-struct header
-{
+using boost::asio::ip::tcp;
+
+struct header {
+	int type;
+	int num;
 	int addr;
 	int size;
 };
 
-extern "C" {
-	__declspec(dllimport) std::wstring mapreceive(header& h);
+enum MessageType
+{
+	INIT,
+	EXIT,
+	START,
+	SEND,
+	STOP,
+	CONFIRM
+};
 
+std::vector<Session*> sessions;
+int i = 0;
+
+extern "C" {
+	__declspec(dllimport) void sendServer(tcp::socket& s, int type, int num = 0, int addr = 0, const wchar_t* str = nullptr);
+	__declspec(dllimport) std::wstring receiveServer(tcp::socket& s, header& h);
 }
 
 void WriteFile(int sessionID, const std::wstring& message) {
@@ -53,85 +74,98 @@ void MyThread(Session* session)
 	return;
 }
 
+void processClient(tcp::socket s)
+{
+	try
+	{
+		while (true)
+		{
+			header h = { 0 };
+			std::wstring str = receiveServer(s, h);
+			switch (h.type)
+			{
+				case INIT: {
+
+					break;
+				}
+				case START:
+				{
+					for (int m = 0; m < h.num; ++m) {
+						sessions.push_back(new Session(i++));
+						std::thread t(MyThread, sessions.back());
+						t.detach();
+					}
+					break;
+				}
+				case STOP:
+				{
+					if (i > 0) {
+
+						sessions.back()->addMessage(MT_CLOSE);
+						sessions.pop_back();
+						i--;
+					}
+					break;
+				}
+				case EXIT:
+				{
+					sessions.clear();
+					sendServer(s, CONFIRM, i);
+					return;
+				}
+				case SEND:
+				{
+					switch (h.addr)
+					{
+						case 0: {
+							for (auto& session : sessions) {
+								session->addMessage(MT_DATA, str);
+							}
+							break;
+						}
+						case 1: {
+							SafeWrite("Main Thread ", str);
+							break;
+						}
+						default: {
+							sessions[h.addr - 2]->addMessage(MT_DATA, str);
+							break;
+						}
+
+					}
+				}
+			}
+		sendServer(s, CONFIRM, i);
+		}
+	}
+	catch (std::exception& e)
+	{
+		std::wcerr << "Client exception: " << e.what() << std::endl;
+	}
+}
+
+
 
 int main()
 {
 	std::wcin.imbue(std::locale("rus_rus.866"));
 	std::wcout.imbue(std::locale("rus_rus.866"));
 
-	std::vector<Session*> sessions;
-	int i = 0;
+	try
+	{
+		int port = 12345;
+		boost::asio::io_context io;
+		tcp::acceptor a(io, tcp::endpoint(tcp::v4(), port));
 
-	HANDLE hStartEvent = CreateEvent(NULL, FALSE, FALSE, L"StartEvent");
-	HANDLE hStopEvent = CreateEvent(NULL, FALSE, FALSE, L"StopEvent");
-	HANDLE hConfirmEvent = CreateEvent(NULL, FALSE, FALSE, L"ConfirmEvent");
-	HANDLE hSendEvent = CreateEvent(NULL, FALSE, FALSE, L"SendEvent");
-	HANDLE hExitEvent = CreateEvent(NULL, FALSE, FALSE, L"ExitEvent");
-	HANDLE hControlEvents[4] = { hStartEvent, hStopEvent, hExitEvent, hSendEvent };
-
-	while (i >= 0){
-		int n = WaitForMultipleObjects(4, hControlEvents, FALSE, INFINITE) - WAIT_OBJECT_0;
-		switch (n)
+		while (true)
 		{
-		case 0:
-		{
-			sessions.push_back(new Session(i++));
-			std::thread t(MyThread, sessions.back());
-			t.detach();
-			SetEvent(hConfirmEvent);
-			break;
+			std::thread(processClient, a.accept()).detach();
 		}
-		case 1:
-		{
-			if (i == 0) {
-				SetEvent(hExitEvent);
-				SetEvent(hConfirmEvent);
-				break;
-			}
-			sessions.back()->addMessage(MT_CLOSE);
-			sessions.pop_back();
-			SetEvent(hConfirmEvent);
-			i--;
-			break;
-		}
-		case 2:
-		{
-			sessions.clear();
-			i = -1;
-			SetEvent(hConfirmEvent);
-			break;
-		}
-		case 3:
-		{
-			header h;
-			std::wstring message = mapreceive(h);
-			
-			switch (h.addr)
-			{
-			case 0: {
-				for (auto& session : sessions) {
-					session->addMessage(MT_DATA, message);
-				}
-				break;
-			}
-			case 1: {
-				SafeWrite("Main Thread ", message);
-				break;
-			}
-			default: {
-				sessions[h.addr - 2]->addMessage(MT_DATA, message);
-				break;
-			}
-				   
-			}
-			SetEvent(hConfirmEvent);
-		}
-		
-		}
-
-	} 
-	SetEvent(hConfirmEvent);
-
+	}
+	catch (std::exception& e)
+	{
+		std::wcerr << "Exception: " << e.what() << std::endl;
+	}
 
 	return 0;
 }

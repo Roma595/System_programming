@@ -9,10 +9,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "System_programming_Kotkov",
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sharp_system_Kotkov", "Sharp_system_Kotkov\Sharp_system_Kotkov.csproj", "{F5A5F710-E70F-4494-872E-C5D03D85692E}"
-	ProjectSection(ProjectDependencies) = postProject
-		{1FEDDEDC-CB78-48CE-A4B8-7C7BC32B9099} = {1FEDDEDC-CB78-48CE-A4B8-7C7BC32B9099}
-		{B2F97081-2AC1-4329-8386-FE4EDE301041} = {B2F97081-2AC1-4329-8386-FE4EDE301041}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Kotkov_DLL", "Kotkov_DLL\Kotkov_DLL.vcxproj", "{1FEDDEDC-CB78-48CE-A4B8-7C7BC32B9099}"
 EndProject

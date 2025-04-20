@@ -6,21 +6,49 @@ namespace Sharp_system_Kotkov
 {
 
 
+
     public partial class Form1 : Form
     {
-        Process? ChildProcess = null;
-        EventWaitHandle StartEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "StartEvent");
-        EventWaitHandle StopEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "StopEvent");
-        EventWaitHandle ConfirmEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "ConfirmEvent");
-        EventWaitHandle SendEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "SendEvent");
-        EventWaitHandle ExitEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "ExitEvent");
+        enum MessageType
+        {
+            INIT,
+            EXIT,
+            START,
+            SEND,
+            STOP,
+            CONFIRM,
+        };
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        struct Header
+        {
+            [MarshalAs(UnmanagedType.I4)]
+            public MessageType type;
+            [MarshalAs(UnmanagedType.I4)]
+            public int num;
+            [MarshalAs(UnmanagedType.I4)]
+            public int addr;
+            [MarshalAs(UnmanagedType.I4)]
+            public int size;
+        };
+
+        [DllImport("Kotkov_DLL.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        static extern Header sendClient(MessageType type, int num = 0, int addr = 0, string str = "");
+        
         public Form1()
         {
             InitializeComponent();
+            Header h = sendClient(MessageType.INIT);
+            if(h.type == MessageType.CONFIRM)
+            {
+                listBoxEvents.Items.Add("Все потоки");
+                listBoxEvents.Items.Add("Главный поток");
+                for (int i = 0; i < h.num; ++i)
+                {
+                    listBoxEvents.Items.Add($"Thread {i}");
+                }
+            }
         }
-
-        [DllImport("Kotkov_DLL.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
-        private static extern void mapsend(int addr, string str);
 
         private void OnProcessExited(object sender, EventArgs e)
         {
@@ -35,57 +63,68 @@ namespace Sharp_system_Kotkov
 
         }
 
-        private void Start_button_Click(object sender, EventArgs e)
+        private void Update_List(int m)
         {
-            if (ChildProcess == null || ChildProcess.HasExited)
+            int n = listBoxEvents.Items.Count - 2;
+            if (m >= n)
             {
-                ChildProcess = Process.Start("System_programming_Kotkov.exe");
-                ChildProcess.EnableRaisingEvents = true;
-                ChildProcess.Exited += OnProcessExited;
-                listBoxEvents.Items.Add("Все потоки");
-                listBoxEvents.Items.Add("Главный поток");
+                for (int i = n; i < m; ++i)
+                {
+                    listBoxEvents.Items.Add($"Thread {i}");
+                }
             }
             else
             {
-                int n = (int)numericUpDown.Value;
-                int CountItems = listBoxEvents.Items.Count;
-                for (int i = 0; i < n; ++i)
+                for (int i = m; i < n; ++i)
                 {
-                    StartEvent.Set();
-                    ConfirmEvent.WaitOne();
-                    listBoxEvents.Items.Add($"Thread {i + CountItems - 2}");
+                    listBoxEvents.Items.RemoveAt(listBoxEvents.Items.Count - 1);
                 }
+            }
+        }
 
+        private void Start_button_Click(object sender, EventArgs e)
+        {
+            int n = (int)numericUpDown.Value;
+            Header h = sendClient(MessageType.START, n);
+            if (h.type == MessageType.CONFIRM)
+            {
+                Update_List(h.num);
             }
         }
 
         private void Stop_button_Click(object sender, EventArgs e)
         {
-            if (!(ChildProcess == null || ChildProcess.HasExited))
+            Header h = sendClient(MessageType.STOP);
+            if (h.type == MessageType.CONFIRM)
             {
-                StopEvent.Set();
-                ConfirmEvent.WaitOne();
-                listBoxEvents.Items.RemoveAt(listBoxEvents.Items.Count - 1);
+                Update_List(h.num);
             }
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
-            if (!(ChildProcess == null || ChildProcess.HasExited))
+            try
             {
-                ExitEvent.Set();
-                ConfirmEvent.WaitOne();
+                sendClient(MessageType.EXIT);
             }
+            catch (Exception ex)
+            {
+                return;
+            }
+            
+
         }
 
         private void Send_button_Click(object sender, EventArgs e)
         {
-            if (!(ChildProcess == null || ChildProcess.HasExited))
+
+            Header h = sendClient(MessageType.SEND, 0, listBoxEvents.SelectedIndex, messageBox.Text);
+            if (h.type == MessageType.CONFIRM)
             {
-                mapsend(listBoxEvents.SelectedIndex, messageBox.Text);
-                SendEvent.Set();
-                ConfirmEvent.WaitOne();
+                messageBox.Text = "";
             }
+            
         }
     }
 }
+
